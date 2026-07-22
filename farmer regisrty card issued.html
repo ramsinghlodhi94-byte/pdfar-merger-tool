@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kisan Registration & Card Generator - AgriStack</title>
+    <!-- QR Code Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .form-container {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+        h2 { text-align: center; color: #0b5d3b; border-bottom: 2px solid #0b5d3b; padding-bottom: 10px; }
+        h3 { color: #1e7e34; margin-top: 20px; margin-bottom: 10px; }
+        .form-row { display: flex; gap: 10px; }
+        .form-group { flex: 1; margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .input-land-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .input-land-table th, .input-land-table td { padding: 6px; border: 1px solid #ddd; }
+        .input-land-table th { background-color: #e9f5ed; font-size: 12px; }
+        
+        .btn-add-row { background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 15px; }
+        .btn-add-row:hover { background: #138496; }
+        .btn-remove { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+
+        .btn-submit { background-color: #0b5d3b; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
+        .btn-submit:hover { background-color: #08442b; }
+
+        /* CARD DESIGN STYLES */
+        .card-preview-area {
+            display: none;
+            text-align: center;
+        }
+        
+        /* Card Dimensions */
+        .id-card {
+            width: 520px;
+            height: 320px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin: 25px auto;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        /* WATERMARK LOGO STYLES */
+        .watermark {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 190px;
+            height: 190px;
+            opacity: 0.08;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* FRONT CARD STYLES */
+        .card-header {
+            background-color: #05482c;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo-agri {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+        .logo-agri span.stack { color: #ffc107; }
+        .logo-icon { margin: 0 2px; color: #76c043; font-weight: bold; }
+
+        .card-header .title { font-size: 13px; letter-spacing: 0.8px; font-weight: bold; }
+        
+        .gov-logo-box { display: flex; align-items: center; gap: 6px; }
+        .up-logo-img { width: 32px; height: 32px; background: white; border-radius: 50%; padding: 2px; object-fit: contain; }
+        .card-header .gov-text { font-size: 9px; text-align: right; line-height: 1.2; font-weight: bold; }
+
+        .card-body { 
+            padding: 12px 15px; 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            position: relative;
+            z-index: 1;
+        }
+
+        .photo-box { 
+            width: 95px; 
+            height: 118px; 
+            border: 2px solid #05482c; 
+            border-radius: 5px; 
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e9e9e9;
+            flex-shrink: 0;
+        }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .details-box { flex: 1; font-size: 11px; color: #333; }
+        .details-box .field-label { color: #05482c; font-weight: bold; font-size: 9px; margin-top: 3px; }
+        .details-box .field-val { font-size: 12px; font-weight: bold; color: #111; }
+        
+        .details-box .name-hi { font-size: 18px; font-weight: 800; color: #000; line-height: 1.1; margin-top: 2px; }
+        .details-box .name-en { font-size: 14px; font-weight: 700; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+
+        .grid-2 { display: flex; justify-content: space-between; }
+
+        .qr-box { width: 85px; text-align: center; flex-shrink: 0; }
+        #qrcode img { width: 85px !important; height: 85px !important; }
+
+        .card-footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: #05482c;
+            color: white;
+            text-align: center;
+            padding: 6px 0;
+            z-index: 1;
+        }
+        .farmer-id-num { font-size: 20px; font-weight: bold; letter-spacing: 5px; }
+        .sub-footer { font-size: 8px; color: #a3d9a5; text-transform: uppercase; margin-top: 1px; }
+
+        /* BACK CARD STYLES */
+        .back-container { 
+            padding: 12px 15px; 
+            position: relative; 
+            z-index: 1;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .back-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #76c043;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .back-address { font-size: 10px; line-height: 1.3; color: #222; }
+        
+        .land-table-wrapper { flex-grow: 1; overflow: hidden; }
+
+        .land-table { width: 100%; border-collapse: collapse; font-size: 9px; background: rgba(255, 255, 255, 0.7); }
+        .land-table th { background: rgba(234, 244, 237, 0.9); color: #05482c; padding: 4px; text-align: left; font-size: 8.5px; }
+        .land-table td { padding: 4px; border-bottom: 1px solid #eee; }
+
+        /* FOOTER */
+        .back-footer {
+            font-size: 8px;
+            color: #555;
+            z-index: 1;
+            margin-top: 5px;
+            padding-top: 4px;
+            border-top: 1px solid #ccc;
+            background: rgba(255, 255, 255, 0.85);
+        }
+        .disclaimer-note { font-size: 7.5px; font-weight: bold; color: #d32f2f; margin-bottom: 3px; text-align: left; line-height: 1.2; }
+        .footer-links { display: flex; justify-content: space-between; align-items: center; color: #333; font-weight: bold; }
+
+        .btn-print { background: #28a745; color: white; padding: 10px 25px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 15px; }
+
+        @media print {
+            .form-container, .btn-print, h2 { display: none !important; }
+            .card-preview-area { display: block !important; }
+            .id-card { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- FORM SECTION -->
+    <div class="form-container">
+        <h2>किसान पंजीयन फॉर्म (AgriStack ID Generator)</h2>
+        <form id="kisanForm">
+            
+            <h3>1. व्यक्तिगत जानकारी (Personal Details)</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>नाम (हिन्दी में):</label>
+                    <input type="text" id="in_name_hi" value="दया शंकर" required>
+                </div>
+                <div class="form-group">
+                    <label>Name (English):</label>
+                    <input type="text" id="in_name_en" value="DAYA SHANKER" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>जन्म तिथि (DOB):</label>
+                    <input type="text" id="in_dob" value="01/01/1970" required>
+                </div>
+                <div class="form-group">
+                    <label>लिंग (Gender):</label>
+                    <select id="in_gender">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>आधार संख्या (Aadhaar No):</label>
+                    <input type="text" id="in_aadhaar" value="XXXX XXXX XXXX" required>
+                </div>
+                <div class="form-group">
+                    <label>मोबाइल नंबर (Mobile No):</label>
+                    <input type="text" id="in_mobile" value="+91 6307358293" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>डिजिटल किसान आईडी (Farmer ID):</label>
+                    <input type="text" id="in_farmer_id" value="71751806715" required>
+                </div>
+                <div class="form-group">
+                    <label>जारी करने की तिथि (Issued Date):</label>
+                    <input type="text" id="in_issued_date" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>फोटो अपलोड करें:</label>
+                <input type="file" id="in_photo" accept="image/*">
+            </div>
+
+            <h3>2. स्थायी पता (Permanent Address)</h3>
+            <div class="form-group">
+                <label>पूरा पता (Full Address):</label>
+                <input type="text" id="in_address" value="S/o: Ram Sanehi, Village-Pipri, Post-Tikra Kumedan, Safipur, Kursath Rural, Unnao" required>
+            </div>
+
+            <h3>3. भूमि का विवरण (Land Details)</h3>
+            <table class="input-land-table" id="landInputTable">
+                <thead>
+                    <tr>
+                        <th>District</th>
+                        <th>Sub-District</th>
+                        <th>Village</th>
+                        <th>M. Owner No.</th>
+                        <th>Khasra</th>
+                        <th>Area</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="landInputBody">
+                    <tr>
+                        <td><input type="text" class="l-dist" value="Unnao" required></td>
+                        <td><input type="text" class="l-sub" value="Safipur" required></td>
+                        <td><input type="text" class="l-vill" value="Kursath Rural" required></td>
+                        <td><input type="text" class="l-owner" value="1413491161000012" required></td>
+                        <td><input type="text" class="l-khasra" value="1161" required></td>
+                        <td><input type="text" class="l-area" value="0.0031" required></td>
+                        <td><button type="button" class="btn-remove" onclick="removeLandRow(this)">X</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button type="button" class="btn-add-row" onclick="addLandRow()">+ Add More Land (और भूमि जोड़ें)</button>
+
+            <button type="submit" class="btn-submit">Generate & Preview Card</button>
+        </form>
+    </div>
+
+    <!-- CARD PREVIEW SECTION -->
+    <div class="card-preview-area" id="previewArea">
+        <h2 style="border:none;">आपका किसान आईडी कार्ड (Card Preview)</h2>
+        
+        <!-- FRONT SIDE -->
+        <div class="id-card" id="cardFront">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Seal_of_Uttar_Pradesh.svg" alt="Watermark" class="watermark">
+
+            <div class="card-header">
+                <div class="logo-agri">
+                    Agri<span class="logo-icon">🌿</span><span class="stack">Stack</span>
+                </div>
+                <div class="title">FARMER ID CARD</div>
+                <div class="gov-logo-box">
+                    <div class="gov-text">उत्तर प्रदेश सरकार<br>GOVT. OF UTTAR PRADESH</div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Seal_of_Uttar_Pradesh.svg" alt="UP Govt Logo" class="up-logo-img">
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="photo-box">
+                    <img id="cardPhoto" src="https://via.placeholder.com/95x118?text=Photo" alt="Farmer Photo">
+                </div>
+                
+                <div class="details-box">
+                    <div class="field-label">NAME / नाम</div>
+                    <div class="name-hi" id="out_name_hi">दया शंकर</div>
+                    <div class="name-en" id="out_name_en">DAYA SHANKER</div>
+
+                    <div class="grid-2">
+                        <div>
+                            <div class="field-label">DATE OF BIRTH / जन्म तिथि</div>
+                            <div class="field-val" id="out_dob">01/01/1970</div>
+                        </div>
+                        <div>
+                            <div class="field-label">GENDER / लिंग</div>
+                            <div class="field-val" id="out_gender">Male</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div>
+                            <div class="field-label">AADHAAR NO. / आधार</div>
+                            <div class="field-val" id="out_aadhaar">XXXX XXXX XXXX</div>
+                        </div>
+                        <div>
+                            <div class="field-label">MOBILE / मोबाइल</div>
+                            <div class="field-val" id="out_mobile">+91 6307358293</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qr-box">
+                    <div id="qrcode"></div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <div class="farmer-id-num" id="out_farmer_id">71751806715</div>
+                <div class="sub-footer">Digital Farmer ID / डिजिटल किसान आईडी</div>
+            </div>
+        </div>
+
+        <!-- BACK SIDE -->
+        <div class="id-card" id="cardBack">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Seal_of_Uttar_Pradesh.svg" alt="Watermark" class="watermark">
+
+            <div class="back-container">
+                <div>
+                    <div class="back-header-flex">
+                        <div>
+                            <span class="field-label" style="color:#05482c; font-weight:bold; font-size:9px;">PERMANENT ADDRESS / स्थायी पता</span>
+                            <div class="back-address" id="out_address">S/o: Ram Sanehi, Village-Pipri, Post-Tikra Kumedan, Safipur, Kursath Rural, Unnao</div>
+                        </div>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Seal_of_Uttar_Pradesh.svg" alt="UP Govt Logo" style="width: 32px; height: 32px; flex-shrink: 0; margin-left: 10px;">
+                    </div>
+
+                    <span class="field-label" style="color:#05482c; font-weight:bold; font-size:9px; display:block; margin-bottom:3px;">LAND RECORDS / भूमि का विवरण</span>
+                    <div class="land-table-wrapper">
+                        <table class="land-table">
+                            <thead>
+                                <tr>
+                                    <th>District</th>
+                                    <th>Sub-District</th>
+                                    <th>Village</th>
+                                    <th>M. Owner No.</th>
+                                    <th>Khasra</th>
+                                    <th>Area</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cardLandBody">
+                                <!-- Dynamic Land Entries -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="back-footer">
+                    <div class="disclaimer-note">
+                        PRIVATE DOCUMENT - NOT A GOVERNMENT IDENTITY CARD<br>
+                        निजी दस्तावेज़ - यह कोई सरकारी पहचान पत्र नहीं है।
+                    </div>
+                    <div class="footer-links">
+                        <span id="out_issued_date">ISSUED ON: --/--/----</span>
+                        <span>WWW.UPFR.AGRISTACK.GOV.IN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+</div>
+
+<script>
+    // Auto-fill today's date in Issued Date field on page load
+    window.onload = function() {
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        document.getElementById('in_issued_date').value = `${dd}/${mm}/${yyyy}`;
+    };
+
+    function addLandRow() {
+        const tbody = document.getElementById('landInputBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="l-dist" placeholder="Unnao" required></td>
+            <td><input type="text" class="l-sub" placeholder="Safipur" required></td>
+            <td><input type="text" class="l-vill" placeholder="Kursath Rural" required></td>
+            <td><input type="text" class="l-owner" placeholder="Owner No" required></td>
+            <td><input type="text" class="l-khasra" placeholder="1161" required></td>
+            <td><input type="text" class="l-area" placeholder="0.0031" required></td>
+            <td><button type="button" class="btn-remove" onclick="removeLandRow(this)">X</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function removeLandRow(button) {
+        const row = button.parentElement.parentElement;
+        if(document.querySelectorAll('#landInputBody tr').length > 1) {
+            row.remove();
+        } else {
+            alert("कम से कम एक भूमि का विवरण होना अनिवार्य है!");
+        }
+    }
+
+    document.getElementById('kisanForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        document.getElementById('out_name_hi').innerText = document.getElementById('in_name_hi').value;
+        document.getElementById('out_name_en').innerText = document.getElementById('in_name_en').value;
+        document.getElementById('out_dob').innerText = document.getElementById('in_dob').value;
+        document.getElementById('out_gender').innerText = document.getElementById('in_gender').value;
+        document.getElementById('out_aadhaar').innerText = document.getElementById('in_aadhaar').value;
+        document.getElementById('out_mobile').innerText = document.getElementById('in_mobile').value;
+        document.getElementById('out_farmer_id').innerText = document.getElementById('in_farmer_id').value;
+        document.getElementById('out_address').innerText = document.getElementById('in_address').value;
+        document.getElementById('out_issued_date').innerText = "ISSUED ON: " + document.getElementById('in_issued_date').value;
+
+        const photoInput = document.getElementById('in_photo');
+        if (photoInput.files && photoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('cardPhoto').src = e.target.result;
+            }
+            reader.readAsDataURL(photoInput.files[0]);
+        }
+
+        const inputRows = document.querySelectorAll('#landInputBody tr');
+        const cardLandBody = document.getElementById('cardLandBody');
+        cardLandBody.innerHTML = "";
+
+        inputRows.forEach(row => {
+            const dist = row.querySelector('.l-dist').value;
+            const sub = row.querySelector('.l-sub').value;
+            const vill = row.querySelector('.l-vill').value;
+            const owner = row.querySelector('.l-owner').value;
+            const khasra = row.querySelector('.l-khasra').value;
+            const area = row.querySelector('.l-area').value;
+
+            const cardTr = document.createElement('tr');
+            cardTr.innerHTML = `
+                <td>${dist}</td>
+                <td>${sub}</td>
+                <td>${vill}</td>
+                <td>${owner}</td>
+                <td>${khasra}</td>
+                <td>${area}</td>
+            `;
+            cardLandBody.appendChild(cardTr);
+        });
+
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+            text: "FARMER-ID:" + document.getElementById('in_farmer_id').value,
+            width: 85,
+            height: 85
+        });
+
+        document.getElementById('previewArea').style.display = 'block';
+        document.getElementById('previewArea').scrollIntoView({ behavior: 'smooth' });
+    });
+</script>
+
+</body>
+</html>
